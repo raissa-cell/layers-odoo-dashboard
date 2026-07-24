@@ -13,7 +13,7 @@ function getClient(path: string) {
   const url = new URL(ODOO_URL);
   const options = {
     host: url.hostname,
-    port: url.port || (url.protocol === 'https:' ? 443 : 80),
+    port: url.port ? parseInt(url.port, 10) : (url.protocol === 'https:' ? 443 : 80),
     path: `/xmlrpc/2/${path}`,
   };
   return url.protocol === 'https:' ? xmlrpc.createSecureClient(options) : xmlrpc.createClient(options);
@@ -24,7 +24,7 @@ export async function odooAuth(): Promise<number | null> {
 
   uidPromise = new Promise((resolve, reject) => {
     const common = getClient('common');
-    common.methodCall('authenticate', [ODOO_DB, ODOO_USER, ODOO_API_KEY, {}], (error, uid) => {
+    common.methodCall('authenticate', [ODOO_DB, ODOO_USER, ODOO_API_KEY, {}], (error: any, uid: any) => {
       if (error) {
         console.error('Odoo Auth Error:', error);
         uidPromise = null; // reset so next time it tries again
@@ -50,7 +50,7 @@ export async function odooCall(model: string, method: string, args: any[] = [], 
 
   return new Promise((resolve, reject) => {
     const models = getClient('object');
-    models.methodCall('execute_kw', [ODOO_DB, uid, ODOO_API_KEY, model, method, args, kwargs], (error, result) => {
+    models.methodCall('execute_kw', [ODOO_DB, uid, ODOO_API_KEY, model, method, args, kwargs], (error: any, result: any) => {
       if (error) return reject(error);
       resolve(result);
     });
