@@ -1,26 +1,26 @@
 /* ─── Layers Brand Tokens ────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  --bg: #f7f8fa;
+  --bg: #F4F6F8;
   --surface: #ffffff;
-  --surface-2: #f0f4f4;
+  --surface-2: #E8ECEF;
   --border: #e2eaea;
-  --primary: #00B8AD;
+  --primary: #00a69c;
   --primary-dark: #009991;
   --primary-light: #e6f9f8;
-  --secondary: #F07070;
-  --dark: #0d1f1f;
-  --success: #00B8AD;
-  --warning: #f59e0b;
-  --danger: #F07070;
-  --text: #0d1f1f;
+  --primary-active: #00b8ad;
+  --success: #30b565;
+  --warning: #f5b845;
+  --danger: #ed6b4f;
+  --info: #2f8af5;
+  --text: #434e5b;
   --text-muted: #6b8787;
   --text-sub: #4a6363;
-  --radius: 14px;
+  --radius: 12px;
   --radius-sm: 8px;
-  --shadow: 0 2px 16px rgba(0,184,173,0.08);
-  --shadow-card: 0 1px 4px rgba(13,31,31,0.07);
+  --shadow: 0 4px 16px rgba(0, 166, 156, 0.08);
+  --shadow-card: 0 2px 8px rgba(67, 78, 91, 0.05);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,7 +28,7 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   line-height: 1.5;
 }
@@ -146,7 +146,7 @@ body {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .tab-btn:hover {
@@ -157,7 +157,7 @@ body {
 .tab-active {
   background: var(--primary) !important;
   color: #fff !important;
-  box-shadow: 0 4px 14px rgba(0,184,173,0.3);
+  box-shadow: 0 4px 14px rgba(0, 166, 156, 0.3);
 }
 
 /* ─── KPI Grid ──────────────────────────────────────────────────── */
@@ -181,7 +181,7 @@ body {
 
 .kpi-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,184,173,0.12);
+  box-shadow: 0 6px 20px rgba(0, 166, 156, 0.12);
 }
 
 .kpi-card::before {
@@ -209,7 +209,7 @@ body {
 .kpi-value {
   font-size: 1.8rem;
   font-weight: 900;
-  color: var(--dark);
+  color: var(--text);
   line-height: 1;
 }
 
@@ -329,10 +329,10 @@ tr:hover td { background: var(--primary-light); }
   font-weight: 800;
 }
 
-.badge-green { background: rgba(0,184,173,0.12); color: #009991; }
-.badge-blue  { background: rgba(0,184,173,0.08); color: var(--primary); }
-.badge-yellow{ background: rgba(245,158,11,0.1); color: #b45309; }
-.badge-red   { background: rgba(240,112,112,0.12); color: #c0392b; }
+.badge-green { background: rgba(48, 181, 101, 0.12); color: #30b565; }
+.badge-blue  { background: rgba(0, 166, 156, 0.08); color: var(--primary); }
+.badge-yellow{ background: rgba(245, 184, 69, 0.12); color: #b45309; }
+.badge-red   { background: rgba(237, 107, 79, 0.12); color: #ed6b4f; }
 
 /* ─── Loading ───────────────────────────────────────────────────── */
 .loading {

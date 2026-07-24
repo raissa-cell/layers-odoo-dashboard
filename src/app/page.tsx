@@ -6,6 +6,10 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line, AreaChart, Area
 } from 'recharts';
+import { 
+  Target, DollarSign, Trophy, LineChart as LineChartIcon, 
+  Briefcase, Telescope, Calendar, School, MessageSquare, Tent 
+} from 'lucide-react';
 
 interface KPIs {
   totalPipeline: number;
@@ -27,7 +31,7 @@ interface DashData {
 
 type Tab = 'vendas' | 'prevendas';
 
-const COLORS = ['#6366f1', '#a855f7', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'];
+const COLORS = ['#00a69c', '#30b565', '#f5b845', '#ed6b4f', '#2f8af5', '#00b8ad'];
 
 function fmt(n: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n);
@@ -89,7 +93,10 @@ export default function Dashboard() {
       {/* Header */}
       <header className="header">
         <div className="header-brand">
-          <div className="header-logo">L</div>
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 8 }}>
+            <rect width="40" height="40" rx="10" fill="#00a69c" />
+            <path d="M14 12V28H28V24H18.5V12H14Z" fill="white" />
+          </svg>
           <div>
             <h1>Layers Education — Report Comercial</h1>
             <div className="header-sub">Acompanhamento comercial via Odoo · Atualização automática diária</div>
@@ -107,15 +114,17 @@ export default function Dashboard() {
           className={`tab-btn ${activeTab === 'vendas' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('vendas')}
           id="tab-vendas"
+          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
         >
-          💰 Vendas
+          <DollarSign size={16} /> Vendas
         </button>
         <button
           className={`tab-btn ${activeTab === 'prevendas' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('prevendas')}
           id="tab-prevendas"
+          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
         >
-          🎯 Pré-vendas
+          <Target size={16} /> Pré-vendas
         </button>
       </div>
 
@@ -125,9 +134,9 @@ export default function Dashboard() {
           {/* KPIs Vendas */}
           <div className="kpi-grid">
             <div className="kpi-card" style={{ '--accent': '#00B8AD' } as any}>
-              <div className="kpi-icon">🎯</div>
+              <div className="kpi-icon"><Target color="#00a69c" size={26} /></div>
               <div className="kpi-label">Atingimento Meta Q2</div>
-              <div className="kpi-value" style={{ color: kpis.atingimento >= 80 ? '#10b981' : kpis.atingimento >= 50 ? '#f59e0b' : '#ef4444' }}>
+              <div className="kpi-value" style={{ color: kpis.atingimento >= 80 ? '#30b565' : kpis.atingimento >= 50 ? '#f5b845' : '#ed6b4f' }}>
                 {fmtPct(kpis.atingimento)}
               </div>
               <div className="progress-wrap">
@@ -142,21 +151,21 @@ export default function Dashboard() {
             </div>
 
             <div className="kpi-card" style={{ '--accent': '#009991' } as any}>
-              <div className="kpi-icon">💰</div>
+              <div className="kpi-icon"><DollarSign color="#00a69c" size={26} /></div>
               <div className="kpi-label">ARR Faturado</div>
               <div className="kpi-value" style={{ color: '#00B8AD' }}>{fmt(kpis.totalFaturado)}</div>
               <div className="kpi-sub">Receita recorrente realizada</div>
             </div>
 
             <div className="kpi-card" style={{ '--accent': '#F07070' } as any}>
-              <div className="kpi-icon">🏆</div>
+              <div className="kpi-icon"><Trophy color="#ed6b4f" size={26} /></div>
               <div className="kpi-label">Deals Won Q2</div>
-              <div className="kpi-value" style={{ color: '#10b981' }}>{kpis.dealsWon}</div>
+              <div className="kpi-value" style={{ color: '#30b565' }}>{kpis.dealsWon}</div>
               <div className="kpi-sub">Meta: 3 deals fechados</div>
             </div>
 
             <div className="kpi-card" style={{ '--accent': '#0d1f1f' } as any}>
-              <div className="kpi-icon">📈</div>
+              <div className="kpi-icon"><LineChartIcon color="#434e5b" size={26} /></div>
               <div className="kpi-label">Ticket Médio</div>
               <div className="kpi-value">{fmt(kpis.ticketMedio)}</div>
               <div className="kpi-sub">ARR médio por deal</div>
@@ -178,8 +187,8 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip contentStyle={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9' }} formatter={(v: any) => [fmt(Number(v)), 'ARR Faturado']} />
-                  <Area type="monotone" dataKey="faturado" stroke="#10b981" strokeWidth={2} fill="url(#gradFaturado)" />
+                  <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', boxShadow: 'var(--shadow-card)' }} formatter={(v: any) => [fmt(Number(v)), 'ARR Faturado']} />
+                  <Area type="monotone" dataKey="faturado" stroke="#30b565" strokeWidth={2} fill="url(#gradFaturado)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -191,8 +200,8 @@ export default function Dashboard() {
                   <Pie data={funil} dataKey="count" nameKey="nome" cx="50%" cy="50%" outerRadius={80} innerRadius={40}>
                     {funil.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9' }} formatter={(v: any) => [v, 'Deals']} />
-                  <Legend formatter={(v: any) => <span style={{ color: '#94a3b8', fontSize: 12 }}>{v}</span>} />
+                  <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', boxShadow: 'var(--shadow-card)' }} formatter={(v: any) => [v, 'Deals']} />
+                  <Legend formatter={(v: any) => <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>{v}</span>} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -219,16 +228,16 @@ export default function Dashboard() {
                     const pct = (t.valor / kpis.metaQ2) * 100;
                     return (
                       <tr key={i}>
-                        <td style={{ color: '#f1f5f9', fontWeight: 600 }}>{t.nome}</td>
+                        <td style={{ color: 'var(--text)', fontWeight: 600 }}>{t.nome}</td>
                         <td><span className="badge badge-green">{t.deals}</span></td>
-                        <td style={{ color: '#10b981', fontWeight: 700 }}>{fmt(t.valor)}</td>
+                        <td style={{ color: '#30b565', fontWeight: 700 }}>{fmt(t.valor)}</td>
                         <td>{fmt(t.deals > 0 ? t.valor / t.deals : 0)}</td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ flex: 1, background: 'rgba(255,255,255,0.06)', borderRadius: 999, height: 5, overflow: 'hidden', minWidth: 60 }}>
-                              <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: '#6366f1', borderRadius: 999 }} />
+                            <div style={{ flex: 1, background: 'var(--border)', borderRadius: 999, height: 5, overflow: 'hidden', minWidth: 60 }}>
+                              <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: 'var(--primary)', borderRadius: 999 }} />
                             </div>
-                            <span style={{ fontSize: 12, color: '#94a3b8' }}>{pct.toFixed(0)}%</span>
+                            <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>{pct.toFixed(0)}%</span>
                           </div>
                         </td>
                       </tr>
@@ -247,44 +256,44 @@ export default function Dashboard() {
           {/* KPIs Pré-vendas */}
           <div className="kpi-grid">
             <div className="kpi-card" style={{ '--accent': 'linear-gradient(90deg, #a855f7, #06b6d4)' } as any}>
-              <div className="kpi-icon">💼</div>
+              <div className="kpi-icon"><Briefcase color="#00a69c" size={26} /></div>
               <div className="kpi-label">Pipeline Total</div>
               <div className="kpi-value">{fmt(kpis.totalPipeline)}</div>
               <div className="kpi-sub">{kpis.dealsEmNegociacao} oportunidades ativas</div>
             </div>
 
             <div className="kpi-card" style={{ '--accent': 'linear-gradient(90deg, #6366f1, #a855f7)' } as any}>
-              <div className="kpi-icon">🔭</div>
+              <div className="kpi-icon"><Telescope color="#00a69c" size={26} /></div>
               <div className="kpi-label">Pipeline Coverage</div>
               <div className="kpi-value">{fmtPct((kpis.totalPipeline / (kpis.metaQ2 * 10)) * 100)}</div>
               <div className="kpi-sub">do pipeline necessário gerado</div>
             </div>
 
             <div className="kpi-card" style={{ '--accent': 'linear-gradient(90deg, #f59e0b, #6366f1)' } as any}>
-              <div className="kpi-icon">📅</div>
+              <div className="kpi-icon"><Calendar color="#f5b845" size={26} /></div>
               <div className="kpi-label">Reuniões Realizadas</div>
               <div className="kpi-value">10</div>
               <div className="kpi-sub">Meta Q2: 21 reuniões</div>
             </div>
 
             <div className="kpi-card" style={{ '--accent': 'linear-gradient(90deg, #10b981, #f59e0b)' } as any}>
-              <div className="kpi-icon">🏫</div>
+              <div className="kpi-icon"><School color="#30b565" size={26} /></div>
               <div className="kpi-label">Escolas Prospectadas</div>
               <div className="kpi-value">1.412</div>
               <div className="kpi-sub">Meta Q2: 2.400+ escolas</div>
             </div>
 
             <div className="kpi-card" style={{ '--accent': 'linear-gradient(90deg, #06b6d4, #10b981)' } as any}>
-              <div className="kpi-icon">💬</div>
+              <div className="kpi-icon"><MessageSquare color="#2f8af5" size={26} /></div>
               <div className="kpi-label">Taxa de Resposta</div>
               <div className="kpi-value">9,2%</div>
               <div className="kpi-sub">~130 escolas responderam</div>
             </div>
 
             <div className="kpi-card" style={{ '--accent': 'linear-gradient(90deg, #ef4444, #f59e0b)' } as any}>
-              <div className="kpi-icon">🎪</div>
+              <div className="kpi-icon"><Tent color="#ed6b4f" size={26} /></div>
               <div className="kpi-label">Show Rate</div>
-              <div className="kpi-value" style={{ color: '#10b981' }}>77%</div>
+              <div className="kpi-value" style={{ color: '#30b565' }}>77%</div>
               <div className="kpi-sub">10 de 13 agendadas</div>
             </div>
           </div>
@@ -297,15 +306,15 @@ export default function Dashboard() {
                 <AreaChart data={monthlyData}>
                   <defs>
                     <linearGradient id="gradPipeline" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#00a69c" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#00a69c" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip contentStyle={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9' }} formatter={(v: any) => [fmt(Number(v)), 'Pipeline']} />
-                  <Area type="monotone" dataKey="pipeline" stroke="#6366f1" strokeWidth={2} fill="url(#gradPipeline)" />
+                  <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', boxShadow: 'var(--shadow-card)' }} formatter={(v: any) => [fmt(Number(v)), 'Pipeline']} />
+                  <Area type="monotone" dataKey="pipeline" stroke="#00a69c" strokeWidth={2} fill="url(#gradPipeline)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -317,8 +326,8 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9' }} formatter={(v: any) => [v, 'Reuniões']} />
-                  <Bar dataKey="reunioes" fill="#a855f7" radius={[6, 6, 0, 0]} />
+                  <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', boxShadow: 'var(--shadow-card)' }} formatter={(v: any) => [v, 'Reuniões']} />
+                  <Bar dataKey="reunioes" fill="#2f8af5" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -331,8 +340,8 @@ export default function Dashboard() {
               <BarChart data={funil} layout="vertical" margin={{ left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
                 <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <YAxis type="category" dataKey="nome" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} width={90} />
-                <Tooltip contentStyle={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#f1f5f9' }} formatter={(v: any) => [fmt(Number(v)), 'Valor']} />
+                <YAxis type="category" dataKey="nome" tick={{ fill: 'var(--text-sub)', fontSize: 12 }} axisLine={false} tickLine={false} width={90} />
+                <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', boxShadow: 'var(--shadow-card)' }} formatter={(v: any) => [fmt(Number(v)), 'Valor']} />
                 <Bar dataKey="valor" radius={[0, 6, 6, 0]}>
                   {funil.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Bar>
@@ -360,18 +369,18 @@ export default function Dashboard() {
                   const ponderado = (p.expected_revenue * p.probability) / 100;
                   return (
                     <tr key={i}>
-                      <td style={{ color: '#f1f5f9', fontWeight: 600 }}>{p.partner_name || p.name}</td>
+                      <td style={{ color: 'var(--text)', fontWeight: 600 }}>{p.partner_name || p.name}</td>
                       <td><span className={`badge ${stageBadge(p.stage_id?.[1])}`}>{p.stage_id?.[1] || '—'}</span></td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ flex: 1, background: 'rgba(255,255,255,0.06)', borderRadius: 999, height: 5, overflow: 'hidden' }}>
-                            <div style={{ width: `${p.probability}%`, height: '100%', background: '#a855f7', borderRadius: 999 }} />
+                          <div style={{ flex: 1, background: 'var(--border)', borderRadius: 999, height: 5, overflow: 'hidden' }}>
+                            <div style={{ width: `${p.probability}%`, height: '100%', background: 'var(--primary)', borderRadius: 999 }} />
                           </div>
-                          <span style={{ fontSize: 12, color: '#94a3b8' }}>{p.probability}%</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>{p.probability}%</span>
                         </div>
                       </td>
-                      <td style={{ color: '#f1f5f9', fontWeight: 700 }}>{fmt(p.expected_revenue)}</td>
-                      <td style={{ color: '#a855f7', fontWeight: 600 }}>{fmt(ponderado)}</td>
+                      <td style={{ color: 'var(--text)', fontWeight: 700 }}>{fmt(p.expected_revenue)}</td>
+                      <td style={{ color: 'var(--primary)', fontWeight: 600 }}>{fmt(ponderado)}</td>
                     </tr>
                   );
                 })}

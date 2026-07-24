@@ -31,22 +31,22 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#f7f8fa', fontFamily: 'Nunito, sans-serif'
+      background: '#F4F6F8', fontFamily: "'Inter', system-ui, -apple-system, sans-serif"
     }}>
       <div style={{
         background: '#fff', borderRadius: 20, padding: '48px 40px',
-        boxShadow: '0 4px 32px rgba(0,184,173,0.1)', border: '1.5px solid #e2eaea',
+        boxShadow: '0 4px 16px rgba(0, 166, 156, 0.08)', border: '1.5px solid #e2eaea',
         width: '100%', maxWidth: 380, textAlign: 'center'
       }}>
         {/* Logo */}
-        <div style={{
-          width: 56, height: 56, background: '#00B8AD', borderRadius: 14,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 20px', fontSize: 28, fontWeight: 900, color: '#fff',
-          boxShadow: '0 4px 16px rgba(0,184,173,0.3)'
-        }}>L</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <svg width="48" height="48" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="10" fill="#00a69c" />
+            <path d="M14 12V28H28V24H18.5V12H14Z" fill="white" />
+          </svg>
+        </div>
 
-        <h1 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0d1f1f', marginBottom: 6 }}>
+        <h1 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#434e5b', marginBottom: 6 }}>
           Layers Education
         </h1>
         <p style={{ fontSize: '0.82rem', color: '#6b8787', fontWeight: 600, marginBottom: 32 }}>
@@ -62,15 +62,15 @@ export default function LoginPage() {
             onChange={e => setPassword(e.target.value)}
             style={{
               width: '100%', padding: '13px 16px', borderRadius: 10,
-              border: `1.5px solid ${error ? '#F07070' : '#e2eaea'}`,
-              fontSize: '0.95rem', fontFamily: 'Nunito, sans-serif',
+              border: `1.5px solid ${error ? '#ed6b4f' : '#e2eaea'}`,
+              fontSize: '0.95rem', fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
               fontWeight: 600, outline: 'none', marginBottom: 12,
-              color: '#0d1f1f', background: '#f7f8fa'
+              color: '#434e5b', background: '#F4F6F8'
             }}
           />
 
           {error && (
-            <p style={{ color: '#F07070', fontSize: '0.78rem', fontWeight: 700, marginBottom: 12 }}>
+            <p style={{ color: '#ed6b4f', fontSize: '0.78rem', fontWeight: 700, marginBottom: 12 }}>
               {error}
             </p>
           )}
@@ -80,11 +80,11 @@ export default function LoginPage() {
             type="submit"
             disabled={loading || !password}
             style={{
-              width: '100%', padding: '13px', background: '#00B8AD',
+              width: '100%', padding: '13px', background: '#00a69c',
               color: '#fff', border: 'none', borderRadius: 10,
               fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer',
-              fontFamily: 'Nunito, sans-serif', opacity: loading || !password ? 0.6 : 1,
-              boxShadow: '0 4px 12px rgba(0,184,173,0.25)', transition: 'opacity 0.2s'
+              fontFamily: "'Inter', system-ui, -apple-system, sans-serif", opacity: loading || !password ? 0.6 : 1,
+              boxShadow: '0 4px 12px rgba(0, 166, 156, 0.25)', transition: 'opacity 0.2s'
             }}
           >
             {loading ? 'Entrando...' : 'Acessar Report'}
