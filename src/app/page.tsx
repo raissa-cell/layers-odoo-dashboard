@@ -24,6 +24,7 @@ interface KPIs {
 interface DashData {
   kpis: KPIs;
   funil: { nome: string; valor: number; count: number }[];
+  channels: { nome: string; leads: number; value: number }[];
   pipeline: { name: string; partner_name: string; expected_revenue: number; probability: number; stage_id: [number, string] }[];
   team: { nome: string; valor: number; deals: number }[];
   updatedAt: string;
@@ -79,7 +80,7 @@ export default function Dashboard() {
 
   if (!data) return <div className="loading"><span>⚠️ Sem dados</span></div>;
 
-  const { kpis, funil, pipeline, team } = data;
+  const { kpis, funil, channels, pipeline, team } = data;
 
   const stageBadge = (stage: string) => {
     if (stage?.toLowerCase().includes('won') || stage?.toLowerCase().includes('ganho')) return 'badge-green';
@@ -266,7 +267,15 @@ export default function Dashboard() {
               <div className="kpi-icon"><Telescope color="#00a69c" size={26} /></div>
               <div className="kpi-label">Pipeline Coverage</div>
               <div className="kpi-value">{fmtPct((kpis.totalPipeline / (kpis.metaQ2 * 10)) * 100)}</div>
-              <div className="kpi-sub">do pipeline necessário gerado</div>
+              <div className="progress-wrap">
+                <div className="progress-bar-bg">
+                  <div className="progress-bar-fill" style={{ width: `${Math.min((kpis.totalPipeline / (kpis.metaQ2 * 10)) * 100, 100)}%`, background: (kpis.totalPipeline / (kpis.metaQ2 * 10)) >= 0.3 ? '#30b565' : '#ed6b4f' }} />
+                </div>
+                <div className="progress-labels">
+                  <span>Atual: {fmt(kpis.totalPipeline)}</span>
+                  <span>Ideal: {fmt(kpis.metaQ2 * 10)}</span>
+                </div>
+              </div>
             </div>
 
             <div className="kpi-card" style={{ '--accent': 'linear-gradient(90deg, #f59e0b, #6366f1)' } as any}>
@@ -333,20 +342,51 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Funil pré-vendas */}
-          <div className="chart-card" style={{ marginBottom: 24 }}>
-            <div className="chart-title">Pipeline por Stage — Valor em Aberto</div>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={funil} layout="vertical" margin={{ left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <YAxis type="category" dataKey="nome" tick={{ fill: 'var(--text-sub)', fontSize: 12 }} axisLine={false} tickLine={false} width={90} />
-                <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', boxShadow: 'var(--shadow-card)' }} formatter={(v: any) => [fmt(Number(v)), 'Valor']} />
-                <Bar dataKey="valor" radius={[0, 6, 6, 0]}>
-                  {funil.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Funil e Canais */}
+          <div className="charts-grid" style={{ marginBottom: 24 }}>
+            <div className="chart-card">
+              <div className="chart-title">Pipeline por Stage — Valor em Aberto</div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={funil} layout="vertical" margin={{ left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                  <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis type="category" dataKey="nome" tick={{ fill: 'var(--text-sub)', fontSize: 12 }} axisLine={false} tickLine={false} width={90} />
+                  <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', boxShadow: 'var(--shadow-card)' }} formatter={(v: any) => [fmt(Number(v)), 'Valor']} />
+                  <Bar dataKey="valor" radius={[0, 6, 6, 0]}>
+                    {funil.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="table-card" style={{ marginBottom: 0 }}>
+              <div className="table-header">
+                <div className="table-title">Top Canais de Ativação</div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Canal (UTM)</th>
+                    <th>Leads</th>
+                    <th>Pipeline Gerado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {channels?.slice(0, 5).map((c, i) => (
+                    <tr key={i}>
+                      <td style={{ color: 'var(--text)', fontWeight: 600 }}>{c.nome}</td>
+                      <td><span className="badge badge-blue">{c.leads}</span></td>
+                      <td style={{ color: 'var(--primary)', fontWeight: 700 }}>{fmt(c.value)}</td>
+                    </tr>
+                  ))}
+                  {(!channels || channels.length === 0) && (
+                    <tr>
+                      <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Sem dados de UTMs</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Pipeline detalhado */}
