@@ -1,67 +1,52 @@
 import { NextResponse } from 'next/server';
-import { getSalesPipeline, getInvoices, getSalesTargets, getTeamPerformance } from '@/lib/odoo';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  try {
-    const [pipeline, invoices, salesOrders, teamData] = await Promise.allSettled([
-      getSalesPipeline(),
-      getInvoices(),
-      getSalesTargets(),
-      getTeamPerformance(),
-    ]);
+  // Dados Mockados para teste de layout
+  const pipelineData = [
+    { id: 1, name: 'Escola Modelo SP', expected_revenue: 45000, stage_id: [3, 'Em Negociação'], user_id: [1, 'Raissa'] },
+    { id: 2, name: 'Colégio Estadual RJ', expected_revenue: 28000, stage_id: [2, 'Qualificado'], user_id: [2, 'Prianti'] },
+    { id: 3, name: 'Instituto Saber', expected_revenue: 65000, stage_id: [4, 'Proposta Enviada'], user_id: [1, 'Raissa'] },
+    { id: 4, name: 'Escola Nova Geração', expected_revenue: 15000, stage_id: [1, 'Novo'], user_id: [2, 'Prianti'] },
+  ];
 
-    const pipelineData = pipeline.status === 'fulfilled' ? pipeline.value : [];
-    const invoicesData = invoices.status === 'fulfilled' ? invoices.value : [];
-    const salesData = salesOrders.status === 'fulfilled' ? salesOrders.value : [];
-    const teamPerf = teamData.status === 'fulfilled' ? teamData.value : [];
+  const salesData = [
+    { id: 10, amount_total: 35000, name: 'Venda - Colégio Alfa' },
+    { id: 11, amount_total: 12500, name: 'Venda - Escola Beta' },
+  ];
 
-    // Calcular KPIs
-    const totalPipeline = pipelineData.reduce((sum: number, o: { expected_revenue: number }) => sum + (o.expected_revenue || 0), 0);
-    const totalFaturado = invoicesData
-      .filter((i: { payment_state: string }) => i.payment_state === 'paid')
-      .reduce((sum: number, i: { amount_total: number }) => sum + (i.amount_total || 0), 0);
-    const totalVendas = salesData.reduce((sum: number, s: { amount_total: number }) => sum + (s.amount_total || 0), 0);
+  // Calcular KPIs Fakes
+  const totalPipeline = pipelineData.reduce((sum, o) => sum + o.expected_revenue, 0);
+  const totalFaturado = salesData.reduce((sum, s) => sum + s.amount_total, 0);
+  const META_Q2 = 101594;
+  const atingimento = (totalFaturado / META_Q2) * 100;
 
-    // Meta Q2
-    const META_Q2 = 101594;
-    const atingimento = totalFaturado > 0 ? (totalFaturado / META_Q2) * 100 : (totalVendas / META_Q2) * 100;
+  const funil = [
+    { nome: 'Novo', valor: 15000, count: 1 },
+    { nome: 'Qualificado', valor: 28000, count: 1 },
+    { nome: 'Em Negociação', valor: 45000, count: 1 },
+    { nome: 'Proposta Enviada', valor: 65000, count: 1 },
+  ];
 
-    // Funil por stage
-    const stageMap: Record<string, { nome: string; valor: number; count: number }> = {};
-    pipelineData.forEach((o: { stage_id: [number, string]; expected_revenue: number }) => {
-      const stage = o.stage_id?.[1] || 'Sem Stage';
-      if (!stageMap[stage]) stageMap[stage] = { nome: stage, valor: 0, count: 0 };
-      stageMap[stage].valor += o.expected_revenue || 0;
-      stageMap[stage].count += 1;
-    });
+  const team = [
+    { nome: 'Raissa', valor: 110000, deals: 2 },
+    { nome: 'Prianti', valor: 43000, deals: 2 },
+  ];
 
-    // Performance por vendedor
-    const teamMap: Record<string, { nome: string; valor: number; deals: number }> = {};
-    teamPerf.forEach((o: { user_id: [number, string]; expected_revenue: number }) => {
-      const user = o.user_id?.[1] || 'Sem Atribuição';
-      if (!teamMap[user]) teamMap[user] = { nome: user, valor: 0, deals: 0 };
-      teamMap[user].valor += o.expected_revenue || 0;
-      teamMap[user].deals += 1;
-    });
-
-    return NextResponse.json({
-      kpis: {
-        totalPipeline,
-        totalFaturado: totalFaturado || totalVendas,
-        metaQ2: META_Q2,
-        atingimento: Math.min(atingimento, 100),
-        dealsWon: salesData.length,
-        dealsEmNegociacao: pipelineData.length,
-        ticketMedio: pipelineData.length > 0 ? totalPipeline / pipelineData.length : 0,
-      },
-      funil: Object.values(stageMap),
-      pipeline: pipelineData.slice(0, 10),
-      team: Object.values(teamMap),
-      updatedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    return NextResponse.json({ error: 'Erro ao buscar dados' }, { status: 500 });
-  }
+  return NextResponse.json({
+    kpis: {
+      totalPipeline,
+      totalFaturado,
+      metaQ2: META_Q2,
+      atingimento,
+      dealsWon: salesData.length,
+      dealsEmNegociacao: pipelineData.length,
+      ticketMedio: totalPipeline / pipelineData.length,
+    },
+    funil,
+    pipeline: pipelineData,
+    team,
+    updatedAt: new Date().toISOString(),
+  });
 }
