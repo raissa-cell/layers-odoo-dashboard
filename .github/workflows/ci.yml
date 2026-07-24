@@ -1,0 +1,37 @@
+name: ✅ CI — Build & Type Check
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & TypeScript Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+        env:
+          ODOO_URL: ${{ secrets.ODOO_URL }}
+          ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
+          ODOO_DB: ${{ secrets.ODOO_DB }}
+          ODOO_USER: ${{ secrets.ODOO_USER }}
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
