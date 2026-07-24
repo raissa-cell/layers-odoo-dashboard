@@ -60,7 +60,12 @@ export async function getSalesPipeline() {
       model: 'crm.lead',
       method: 'search_read',
       kwargs: {
-        domain: [['type', '=', 'opportunity']],
+        domain: [
+          ['type', '=', 'opportunity'],
+          ['active', '=', true],
+          ['stage_id.is_won', '=', false],
+          ['probability', '<', 100],
+        ],
         fields: ['name', 'partner_name', 'expected_revenue', 'probability', 'stage_id', 'user_id', 'date_deadline', 'kanban_state'],
         limit: 100,
         order: 'expected_revenue desc',

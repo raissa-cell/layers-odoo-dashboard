@@ -110,6 +110,44 @@ body {
   color: var(--text-muted);
 }
 
+/* ─── Tabs ──────────────────────────────────────────────────────── */
+.tabs-wrap {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px;
+  width: fit-content;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.05);
+}
+
+.tab-active {
+  background: linear-gradient(135deg, var(--primary), #a855f7) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+}
+
+
 /* ─── KPI Grid ──────────────────────────────────────────────────── */
 .kpi-grid {
   display: grid;
