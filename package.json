@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "NEXT_TURBOPACK=0 next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "date-fns": "^4.4.0",
