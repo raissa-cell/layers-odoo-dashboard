@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSalesPipeline, getInvoices, getSalesTargets, getTeamPerformance } from '@/lib/odoo';
 
-export const revalidate = 3600; // cache 1 hora
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
