@@ -89,9 +89,9 @@ export default function Dashboard() {
       {/* Header */}
       <header className="header">
         <div className="header-brand">
-          <div className="header-logo">📊</div>
+          <div className="header-logo">L</div>
           <div>
-            <h1>Layers Education — Report</h1>
+            <h1>Layers Education — Report Comercial</h1>
             <div className="header-sub">Acompanhamento comercial via Odoo · Atualização automática diária</div>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function Dashboard() {
         <>
           {/* KPIs Vendas */}
           <div className="kpi-grid">
-            <div className="kpi-card" style={{ '--accent': 'linear-gradient(90deg, #6366f1, #a855f7)' } as any}>
+            <div className="kpi-card" style={{ '--accent': '#00B8AD' } as any}>
               <div className="kpi-icon">🎯</div>
               <div className="kpi-label">Atingimento Meta Q2</div>
               <div className="kpi-value" style={{ color: kpis.atingimento >= 80 ? '#10b981' : kpis.atingimento >= 50 ? '#f59e0b' : '#ef4444' }}>
@@ -141,21 +141,21 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="kpi-card" style={{ '--accent': 'linear-gradient(90deg, #10b981, #06b6d4)' } as any}>
+            <div className="kpi-card" style={{ '--accent': '#009991' } as any}>
               <div className="kpi-icon">💰</div>
               <div className="kpi-label">ARR Faturado</div>
-              <div className="kpi-value">{fmt(kpis.totalFaturado)}</div>
+              <div className="kpi-value" style={{ color: '#00B8AD' }}>{fmt(kpis.totalFaturado)}</div>
               <div className="kpi-sub">Receita recorrente realizada</div>
             </div>
 
-            <div className="kpi-card" style={{ '--accent': 'linear-gradient(90deg, #f59e0b, #ef4444)' } as any}>
+            <div className="kpi-card" style={{ '--accent': '#F07070' } as any}>
               <div className="kpi-icon">🏆</div>
               <div className="kpi-label">Deals Won Q2</div>
               <div className="kpi-value" style={{ color: '#10b981' }}>{kpis.dealsWon}</div>
               <div className="kpi-sub">Meta: 3 deals fechados</div>
             </div>
 
-            <div className="kpi-card" style={{ '--accent': 'linear-gradient(90deg, #06b6d4, #6366f1)' } as any}>
+            <div className="kpi-card" style={{ '--accent': '#0d1f1f' } as any}>
               <div className="kpi-icon">📈</div>
               <div className="kpi-label">Ticket Médio</div>
               <div className="kpi-value">{fmt(kpis.ticketMedio)}</div>
