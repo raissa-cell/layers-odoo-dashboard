@@ -13,7 +13,7 @@ function getClient(path: string) {
   const url = new URL(ODOO_URL);
   const options = {
     host: url.hostname,
-    port: url.port || (url.protocol === 'https:' ? 443 : 80),
+    port: Number(url.port) || (url.protocol === 'https:' ? 443 : 80),
     path: `/xmlrpc/2/${path}`,
   };
   return url.protocol === 'https:' ? xmlrpc.createSecureClient(options) : xmlrpc.createClient(options);
