@@ -20,7 +20,7 @@ interface SdrSummary {
 }
 interface PreVendasReport {
   generatedAt: string;
-  source: 'odoo' | 'mock';
+  source: 'odoo';
   stageOrder: string[];
   sdrs: SdrSummary[];
 }
@@ -38,15 +38,19 @@ function firstName(name: string) { return name.split(' ')[0]; }
 export default function PreVendasPage() {
   const [data, setData] = useState<PreVendasReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
+        setError(null);
         const res = await fetch('/api/pre-vendas', { cache: 'no-store' });
-        setData(await res.json());
-      } catch {
-        // fallback silencioso
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || `Erro HTTP ${res.status}`);
+        setData(json);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Erro desconhecido ao carregar o report.');
       } finally {
         setLoading(false);
       }
@@ -59,7 +63,12 @@ export default function PreVendasPage() {
       <span>Conectando ao Odoo...</span>
     </div>
   );
-  if (!data || !data.sdrs?.length) return <div className="loading"><span>⚠️ Sem dados de pré-vendas</span></div>;
+  if (error) return (
+    <div className="loading">
+      <span>⚠️ {error}</span>
+    </div>
+  );
+  if (!data || !data.sdrs?.length) return <div className="loading"><span>Sem dados de pré-vendas no Odoo.</span></div>;
 
   // Totais consolidados
   const totalLeads = data.sdrs.reduce((s, x) => s + x.totalLeads, 0);
@@ -80,7 +89,7 @@ export default function PreVendasPage() {
           <div>
             <h1>Layers Education — Funil de Pré-vendas (SDR)</h1>
             <div className="header-sub">
-              Funil por SDR via Odoo · Fonte: {data.source === 'odoo' ? 'Odoo (ao vivo)' : 'dados de exemplo (fallback)'}
+              Funil por SDR · dados ao vivo do Odoo (crm.lead)
             </div>
           </div>
         </div>

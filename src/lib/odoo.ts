@@ -42,15 +42,15 @@ export async function odooAuth(): Promise<number | null> {
   return uidPromise;
 }
 
-export async function odooCall(model: string, method: string, args: any[] = [], kwargs: any = {}): Promise<any> {
+export async function odooCall<T = any>(model: string, method: string, args: any[] = [], kwargs: any = {}): Promise<T> {
   const uid = await odooAuth();
   if (!uid) {
     throw new Error('Authentication failed');
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise<T>((resolve, reject) => {
     const models = getClient('object');
-    models.methodCall('execute_kw', [ODOO_DB, uid, ODOO_API_KEY, model, method, args, kwargs], (error: any, result: any) => {
+    models.methodCall('execute_kw', [ODOO_DB, uid, ODOO_API_KEY, model, method, args, kwargs], (error: any, result: T) => {
       if (error) return reject(error);
       resolve(result);
     });
@@ -156,141 +156,134 @@ export interface SdrSummary {
   sdrName: string;
   totalLeads: number;
   funnel: SdrFunnelStage[];
-  meetingsScheduled: number; // reuniões com data de qualificação
-  meetingsAttended: number; // reuniões com check-in realizado
-  won: number; // leads em stages is_won
+  meetingsScheduled: number; // reuniões agendadas (crm.lead.sdr_meeting_start preenchido)
+  meetingsAttended: number; // reuniões realizadas (crm.lead.sdr_meeting_attended = check-in)
+  won: number; // leads em etapas ganhas (crm.stage.is_won = true)
 }
 
 export interface PreVendasReport {
   generatedAt: string;
-  source: 'odoo' | 'mock';
+  source: 'odoo';
   stageOrder: string[];
   sdrs: SdrSummary[];
 }
 
-// Descobre dinamicamente os SDRs (usuários preenchidos em crm.lead.sdr_id)
-async function getSdrUsers(): Promise<Array<[number, string]>> {
-  const groups = await odooCall('crm.lead', 'read_group', [
-    [['sdr_id', '!=', false]],
-  ], {
-    fields: ['sdr_id'],
-    groupby: ['sdr_id'],
-  });
-  return (groups as Array<{ sdr_id: [number, string] }>)
-    .filter((g) => g.sdr_id)
-    .map((g) => g.sdr_id);
+// Linha de agregação retornada por read_group agrupado por sdr_id + stage_id
+interface FunnelRow {
+  sdr_id: [number, string] | false;
+  stage_id: [number, string] | false;
+  __count: number;
+}
+// Linha de agregação retornada por read_group agrupado só por sdr_id
+interface SdrCountRow {
+  sdr_id: [number, string] | false;
+  __count: number;
+}
+interface StageRow {
+  name: string;
+  is_won: boolean;
 }
 
+/**
+ * Report de pré-vendas por SDR — SOMENTE LEITURA do Odoo.
+ *
+ * Faz um número CONSTANTE de chamadas XML-RPC (não escala com o nº de SDRs):
+ *   1. crm.stage → mapa de etapas ganhas (is_won) — fonte da verdade, sem hardcode
+ *   2. crm.lead read_group por sdr_id + stage_id → funil completo de todos os SDRs
+ *   3. crm.lead read_group por sdr_id (com sdr_meeting_start) → reuniões agendadas
+ *   4. crm.lead read_group por sdr_id (com sdr_meeting_attended=true) → realizadas
+ *
+ * Em caso de falha (Odoo indisponível / credenciais), PROPAGA o erro — nunca
+ * retorna dados fake. A camada de API converte isso em HTTP 500 e a UI mostra
+ * uma mensagem de erro, garantindo que todo número exibido seja real.
+ */
 export async function getPreVendasReport(): Promise<PreVendasReport> {
-  try {
-    const sdrs = await getSdrUsers();
-    const wonStages = new Set(['Pagamento confirmado', 'Pedido Confirmado']);
+  // Chamadas independentes em paralelo
+  const [stages, funnelRows, scheduledRows, attendedRows] = await Promise.all([
+    odooCall<StageRow[]>('crm.stage', 'search_read', [[]], {
+      fields: ['name', 'is_won'],
+    }),
+    odooCall<FunnelRow[]>('crm.lead', 'read_group', [[['sdr_id', '!=', false]]], {
+      fields: ['sdr_id'],
+      groupby: ['sdr_id', 'stage_id'],
+      lazy: false,
+    }),
+    odooCall<SdrCountRow[]>('crm.lead', 'read_group', [
+      [['sdr_id', '!=', false], ['sdr_meeting_start', '!=', false]],
+    ], {
+      fields: ['sdr_id'],
+      groupby: ['sdr_id'],
+      lazy: false,
+    }),
+    odooCall<SdrCountRow[]>('crm.lead', 'read_group', [
+      [['sdr_id', '!=', false], ['sdr_meeting_attended', '=', true]],
+    ], {
+      fields: ['sdr_id'],
+      groupby: ['sdr_id'],
+      lazy: false,
+    }),
+  ]);
 
-    const summaries: SdrSummary[] = [];
+  const wonStageNames = new Set(stages.filter((s) => s.is_won).map((s) => s.name));
+  const scheduledBySdr = new Map<number, number>();
+  for (const r of scheduledRows) if (r.sdr_id) scheduledBySdr.set(r.sdr_id[0], r.__count);
+  const attendedBySdr = new Map<number, number>();
+  for (const r of attendedRows) if (r.sdr_id) attendedBySdr.set(r.sdr_id[0], r.__count);
 
-    for (const [sdrId, sdrName] of sdrs) {
-      // Funil: agrupa por stage para este SDR (read_group = agregação, read-only)
-      const byStage = (await odooCall('crm.lead', 'read_group', [
-        [['sdr_id', '=', sdrId]],
-      ], {
-        fields: ['stage_id'],
-        groupby: ['stage_id'],
-        lazy: false,
-      })) as Array<{ stage_id: [number, string] | false; __count: number }>;
+  // Monta o resumo por SDR a partir do funil agregado
+  interface Acc { sdrName: string; counts: Map<string, number>; total: number; won: number }
+  const bySdr = new Map<number, Acc>();
 
-      const counts = new Map<string, number>();
-      let total = 0;
-      let won = 0;
-      for (const row of byStage) {
-        const stageName = row.stage_id ? row.stage_id[1] : 'Sem etapa';
-        counts.set(stageName, (counts.get(stageName) || 0) + row.__count);
-        total += row.__count;
-        if (wonStages.has(stageName)) won += row.__count;
-      }
+  for (const row of funnelRows) {
+    if (!row.sdr_id) continue;
+    const [sdrId, sdrName] = row.sdr_id;
+    const stageName = row.stage_id ? row.stage_id[1] : 'Sem etapa';
 
-      const funnel: SdrFunnelStage[] = PRE_VENDAS_STAGE_ORDER
-        .filter((s) => counts.has(s))
-        .map((s) => ({ stage: s, count: counts.get(s) || 0 }));
-
-      const meetingsScheduled = (await odooCall('crm.lead', 'search_count', [
-        [['sdr_id', '=', sdrId], ['sdr_meeting_start', '!=', false]],
-      ])) as unknown as number;
-
-      const meetingsAttended = (await odooCall('crm.lead', 'search_count', [
-        [['sdr_id', '=', sdrId], ['sdr_meeting_attended', '=', true]],
-      ])) as unknown as number;
-
-      summaries.push({
-        sdrId,
-        sdrName,
-        totalLeads: total,
-        funnel,
-        meetingsScheduled,
-        meetingsAttended,
-        won,
-      });
+    let acc = bySdr.get(sdrId);
+    if (!acc) {
+      acc = { sdrName, counts: new Map(), total: 0, won: 0 };
+      bySdr.set(sdrId, acc);
     }
+    acc.counts.set(stageName, (acc.counts.get(stageName) || 0) + row.__count);
+    acc.total += row.__count;
+    if (wonStageNames.has(stageName)) acc.won += row.__count;
 
-    summaries.sort((a, b) => b.totalLeads - a.totalLeads);
-
-    return {
-      generatedAt: new Date().toISOString(),
-      source: 'odoo',
-      stageOrder: PRE_VENDAS_STAGE_ORDER,
-      sdrs: summaries,
-    };
-  } catch (err) {
-    console.error('getPreVendasReport failed', err);
-    return getMockPreVendas();
+    // Detecta drift de configuração: stage que existe no Odoo mas não na ordem canônica
+    if (stageName !== 'Sem etapa' && !PRE_VENDAS_STAGE_ORDER.includes(stageName)) {
+      console.warn(`[pre-vendas] Stage "${stageName}" não está em PRE_VENDAS_STAGE_ORDER — não aparecerá no funil.`);
+    }
   }
-}
 
-function getMockPreVendas(): PreVendasReport {
+  const summaries: SdrSummary[] = [];
+  for (const [sdrId, acc] of bySdr) {
+    const funnel: SdrFunnelStage[] = PRE_VENDAS_STAGE_ORDER
+      .filter((s) => acc.counts.has(s))
+      .map((s) => ({ stage: s, count: acc.counts.get(s)! }));
+
+    summaries.push({
+      sdrId,
+      sdrName: acc.sdrName,
+      // NOTA: totalLeads inclui leads em "Sem etapa" (stage_id vazio), que
+      // intencionalmente NÃO aparece no funil. Por isso a soma das barras do
+      // funil pode ser menor que totalLeads.
+      totalLeads: acc.total,
+      funnel,
+      meetingsScheduled: scheduledBySdr.get(sdrId) || 0,
+      meetingsAttended: attendedBySdr.get(sdrId) || 0,
+      won: acc.won,
+    });
+  }
+
+  summaries.sort((a, b) => b.totalLeads - a.totalLeads);
+
   return {
     generatedAt: new Date().toISOString(),
-    source: 'mock',
+    source: 'odoo',
     stageOrder: PRE_VENDAS_STAGE_ORDER,
-    sdrs: [
-      {
-        sdrId: 104,
-        sdrName: 'Douglas da Costa Junior',
-        totalLeads: 1103,
-        meetingsScheduled: 39,
-        meetingsAttended: 25,
-        won: 6,
-        funnel: [
-          { stage: 'Novo', count: 655 },
-          { stage: 'Sem contato', count: 314 },
-          { stage: 'Contato', count: 53 },
-          { stage: 'Agendado', count: 16 },
-          { stage: 'NoShow', count: 4 },
-          { stage: 'Qualified', count: 17 },
-          { stage: 'Cotação Enviada', count: 6 },
-          { stage: 'Proposta Visualizada', count: 3 },
-          { stage: 'Pedido Confirmado', count: 6 },
-        ],
-      },
-      {
-        sdrId: 103,
-        sdrName: 'Luanna Santos de Almeida',
-        totalLeads: 885,
-        meetingsScheduled: 33,
-        meetingsAttended: 15,
-        won: 19,
-        funnel: [
-          { stage: 'Novo', count: 79 },
-          { stage: 'Sem contato', count: 726 },
-          { stage: 'Contato', count: 16 },
-          { stage: 'Agendado', count: 7 },
-          { stage: 'Qualified', count: 13 },
-          { stage: 'Cotação Enviada', count: 9 },
-          { stage: 'Proposta Visualizada', count: 16 },
-          { stage: 'Pedido Confirmado', count: 19 },
-        ],
-      },
-    ],
+    sdrs: summaries,
   };
 }
+
 
 // ─── MOCK DATA (fallback quando Odoo não responde) ──────────────────────────
 
