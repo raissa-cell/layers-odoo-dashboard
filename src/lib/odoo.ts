@@ -166,6 +166,17 @@ export interface PreVendasReport {
   source: 'odoo';
   stageOrder: string[];
   sdrs: SdrSummary[];
+  // Série mensal (apenas 2026) — uma entrada por mês, com valores por SDR.
+  monthly: MonthlyPoint[];
+  monthlyYear: number;
+}
+
+// Ponto mensal da tendência. `leads` e `meetings` mapeiam nome do SDR → contagem.
+export interface MonthlyPoint {
+  month: string; // 'YYYY-MM'
+  label: string; // ex.: 'Jan', 'Fev'
+  leads: Record<string, number>; // leads criados no mês (create_date), por SDR
+  meetings: Record<string, number>; // reuniões agendadas no mês (sdr_meeting_start), por SDR
 }
 
 // Linha de agregação retornada por read_group agrupado por sdr_id + stage_id
@@ -183,6 +194,15 @@ interface StageRow {
   name: string;
   is_won: boolean;
 }
+// Linha de read_group agrupado por sdr_id + <campo de data>:month.
+// A chave do agrupamento mensal traz o rótulo localizado (ex.: "abril 2026") e
+// um __range com as datas ISO — usamos o __range para extrair 'YYYY-MM' sem depender de locale.
+interface MonthlyRow {
+  sdr_id: [number, string] | false;
+  __count: number;
+  __range?: Record<string, { from: string; to: string }>;
+  [key: string]: unknown;
+}
 
 /**
  * Report de pré-vendas por SDR — SOMENTE LEITURA do Odoo.
@@ -192,14 +212,20 @@ interface StageRow {
  *   2. crm.lead read_group por sdr_id + stage_id → funil completo de todos os SDRs
  *   3. crm.lead read_group por sdr_id (com sdr_meeting_start) → reuniões agendadas
  *   4. crm.lead read_group por sdr_id (com sdr_meeting_attended=true) → realizadas
+ *   5. crm.lead read_group por sdr_id + create_date:month (2026) → leads criados/mês
+ *   6. crm.lead read_group por sdr_id + sdr_meeting_start:month (2026) → reuniões agendadas/mês
  *
  * Em caso de falha (Odoo indisponível / credenciais), PROPAGA o erro — nunca
  * retorna dados fake. A camada de API converte isso em HTTP 500 e a UI mostra
  * uma mensagem de erro, garantindo que todo número exibido seja real.
  */
 export async function getPreVendasReport(): Promise<PreVendasReport> {
+  const MONTHLY_YEAR = 2026;
+  const yearStart = `${MONTHLY_YEAR}-01-01 00:00:00`;
+  const yearEnd = `${MONTHLY_YEAR}-12-31 23:59:59`;
+
   // Chamadas independentes em paralelo
-  const [stages, funnelRows, scheduledRows, attendedRows] = await Promise.all([
+  const [stages, funnelRows, scheduledRows, attendedRows, leadsMonthRows, meetingsMonthRows] = await Promise.all([
     odooCall<StageRow[]>('crm.stage', 'search_read', [[]], {
       fields: ['name', 'is_won'],
     }),
@@ -220,6 +246,22 @@ export async function getPreVendasReport(): Promise<PreVendasReport> {
     ], {
       fields: ['sdr_id'],
       groupby: ['sdr_id'],
+      lazy: false,
+    }),
+    // Leads criados por mês (2026), por SDR
+    odooCall<MonthlyRow[]>('crm.lead', 'read_group', [
+      [['sdr_id', '!=', false], ['create_date', '>=', yearStart], ['create_date', '<=', yearEnd]],
+    ], {
+      fields: ['sdr_id'],
+      groupby: ['sdr_id', 'create_date:month'],
+      lazy: false,
+    }),
+    // Reuniões agendadas por mês (2026), por SDR
+    odooCall<MonthlyRow[]>('crm.lead', 'read_group', [
+      [['sdr_id', '!=', false], ['sdr_meeting_start', '>=', yearStart], ['sdr_meeting_start', '<=', yearEnd]],
+    ], {
+      fields: ['sdr_id'],
+      groupby: ['sdr_id', 'sdr_meeting_start:month'],
       lazy: false,
     }),
   ]);
@@ -276,11 +318,50 @@ export async function getPreVendasReport(): Promise<PreVendasReport> {
 
   summaries.sort((a, b) => b.totalLeads - a.totalLeads);
 
+  // ── Série mensal (2026): leads criados + reuniões agendadas, por SDR ──
+  // Extrai 'YYYY-MM' do __range (from = 'YYYY-MM-01 ...'), sem depender de locale.
+  const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const monthMap = new Map<string, MonthlyPoint>();
+
+  function ensureMonth(ym: string): MonthlyPoint {
+    let pt = monthMap.get(ym);
+    if (!pt) {
+      const monthIdx = Number(ym.slice(5, 7)) - 1;
+      pt = { month: ym, label: MONTH_LABELS[monthIdx] ?? ym, leads: {}, meetings: {} };
+      monthMap.set(ym, pt);
+    }
+    return pt;
+  }
+
+  function ymFromRow(row: MonthlyRow, field: string): string | null {
+    const from = row.__range?.[field]?.from;
+    return from ? from.slice(0, 7) : null; // 'YYYY-MM'
+  }
+
+  for (const row of leadsMonthRows) {
+    if (!row.sdr_id) continue;
+    const ym = ymFromRow(row, 'create_date:month');
+    if (!ym) continue;
+    const pt = ensureMonth(ym);
+    pt.leads[row.sdr_id[1]] = (pt.leads[row.sdr_id[1]] || 0) + row.__count;
+  }
+  for (const row of meetingsMonthRows) {
+    if (!row.sdr_id) continue;
+    const ym = ymFromRow(row, 'sdr_meeting_start:month');
+    if (!ym) continue;
+    const pt = ensureMonth(ym);
+    pt.meetings[row.sdr_id[1]] = (pt.meetings[row.sdr_id[1]] || 0) + row.__count;
+  }
+
+  const monthly = Array.from(monthMap.values()).sort((a, b) => a.month.localeCompare(b.month));
+
   return {
     generatedAt: new Date().toISOString(),
     source: 'odoo',
     stageOrder: PRE_VENDAS_STAGE_ORDER,
     sdrs: summaries,
+    monthly,
+    monthlyYear: MONTHLY_YEAR,
   };
 }
 

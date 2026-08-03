@@ -5,8 +5,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend,
+  LineChart, Line,
 } from 'recharts';
-import { Target, Calendar, CheckCircle, Trophy, ArrowLeft, Users } from 'lucide-react';
+import { Target, Calendar, CheckCircle, Trophy, ArrowLeft, Users, TrendingUp } from 'lucide-react';
 
 interface SdrFunnelStage { stage: string; count: number }
 interface SdrSummary {
@@ -18,11 +19,19 @@ interface SdrSummary {
   meetingsAttended: number;
   won: number;
 }
+interface MonthlyPoint {
+  month: string;
+  label: string;
+  leads: Record<string, number>;
+  meetings: Record<string, number>;
+}
 interface PreVendasReport {
   generatedAt: string;
   source: 'odoo';
   stageOrder: string[];
   sdrs: SdrSummary[];
+  monthly: MonthlyPoint[];
+  monthlyYear: number;
 }
 
 const COLORS = ['#00a69c', '#30b565', '#f5b845', '#ed6b4f', '#2f8af5', '#00b8ad', '#a855f7', '#6366f1', '#f59e0b', '#06b6d4'];
@@ -208,6 +217,54 @@ export default function PreVendasPage() {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Tendência mensal (2026) — uma linha por SDR */}
+      {data.monthly?.length > 0 && (() => {
+        const sdrNames = data.sdrs.map((s) => s.sdrName);
+        const leadsData = data.monthly.map((m) => ({ label: m.label, ...m.leads }));
+        const meetingsData = data.monthly.map((m) => ({ label: m.label, ...m.meetings }));
+        return (
+          <div className="charts-grid">
+            <div className="chart-card">
+              <div className="chart-title">
+                <TrendingUp size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+                Leads criados por mês — {data.monthlyYear}
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={leadsData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+                  <XAxis dataKey="label" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', boxShadow: 'var(--shadow-card)' }} />
+                  <Legend formatter={(v: any) => <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>{firstName(v)}</span>} />
+                  {sdrNames.map((name, i) => (
+                    <Line key={name} type="monotone" dataKey={name} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={{ r: 3 }} />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="chart-card">
+              <div className="chart-title">
+                <Calendar size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+                Reuniões agendadas por mês — {data.monthlyYear}
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={meetingsData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+                  <XAxis dataKey="label" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', boxShadow: 'var(--shadow-card)' }} />
+                  <Legend formatter={(v: any) => <span style={{ color: 'var(--text-sub)', fontSize: 12 }}>{firstName(v)}</span>} />
+                  {sdrNames.map((name, i) => (
+                    <Line key={name} type="monotone" dataKey={name} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={{ r: 3 }} />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
