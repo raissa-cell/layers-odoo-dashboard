@@ -229,26 +229,31 @@ export async function getPreVendasReport(): Promise<PreVendasReport> {
     odooCall<StageRow[]>('crm.stage', 'search_read', [[]], {
       fields: ['name', 'is_won'],
     }),
-    odooCall<FunnelRow[]>('crm.lead', 'read_group', [[['sdr_id', '!=', false]]], {
+    // Funil completo (2026)
+    odooCall<FunnelRow[]>('crm.lead', 'read_group', [
+      [['sdr_id', '!=', false], ['create_date', '>=', yearStart], ['create_date', '<=', yearEnd]],
+    ], {
       fields: ['sdr_id'],
       groupby: ['sdr_id', 'stage_id'],
       lazy: false,
     }),
+    // Reuniões agendadas (2026)
     odooCall<SdrCountRow[]>('crm.lead', 'read_group', [
-      [['sdr_id', '!=', false], ['sdr_meeting_start', '!=', false]],
+      [['sdr_id', '!=', false], ['sdr_meeting_start', '>=', yearStart], ['sdr_meeting_start', '<=', yearEnd]],
     ], {
       fields: ['sdr_id'],
       groupby: ['sdr_id'],
       lazy: false,
     }),
+    // Reuniões realizadas (2026)
     odooCall<SdrCountRow[]>('crm.lead', 'read_group', [
-      [['sdr_id', '!=', false], ['sdr_meeting_attended', '=', true]],
+      [['sdr_id', '!=', false], ['sdr_meeting_attended', '=', true], ['sdr_meeting_start', '>=', yearStart], ['sdr_meeting_start', '<=', yearEnd]],
     ], {
       fields: ['sdr_id'],
       groupby: ['sdr_id'],
       lazy: false,
     }),
-    // Leads criados por mês (2026), por SDR
+    // Leads criados por mês (2026)
     odooCall<MonthlyRow[]>('crm.lead', 'read_group', [
       [['sdr_id', '!=', false], ['create_date', '>=', yearStart], ['create_date', '<=', yearEnd]],
     ], {
@@ -256,7 +261,7 @@ export async function getPreVendasReport(): Promise<PreVendasReport> {
       groupby: ['sdr_id', 'create_date:month'],
       lazy: false,
     }),
-    // Reuniões agendadas por mês (2026), por SDR
+    // Reuniões agendadas por mês (2026)
     odooCall<MonthlyRow[]>('crm.lead', 'read_group', [
       [['sdr_id', '!=', false], ['sdr_meeting_start', '>=', yearStart], ['sdr_meeting_start', '<=', yearEnd]],
     ], {
