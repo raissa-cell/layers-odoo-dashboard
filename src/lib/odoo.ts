@@ -128,6 +128,170 @@ export async function getTeamPerformance() {
   }
 }
 
+// ─── PRÉ-VENDAS (SDR) ───────────────────────────────────────────────────────
+// IMPORTANTE: todas as chamadas abaixo são SOMENTE LEITURA (search_read/read_group/
+// search_count). NUNCA usar create/write/unlink neste projeto.
+
+// Ordem canônica do funil de pré-vendas (stage_id.name no Odoo da Layers)
+export const PRE_VENDAS_STAGE_ORDER = [
+  'Novo',
+  'Sem contato',
+  'Contato',
+  'Agendado',
+  'NoShow',
+  'Qualified',
+  'Cotação Enviada',
+  'Proposta Visualizada',
+  'Pagamento confirmado',
+  'Pedido Confirmado',
+];
+
+export interface SdrFunnelStage {
+  stage: string;
+  count: number;
+}
+
+export interface SdrSummary {
+  sdrId: number;
+  sdrName: string;
+  totalLeads: number;
+  funnel: SdrFunnelStage[];
+  meetingsScheduled: number; // reuniões com data de qualificação
+  meetingsAttended: number; // reuniões com check-in realizado
+  won: number; // leads em stages is_won
+}
+
+export interface PreVendasReport {
+  generatedAt: string;
+  source: 'odoo' | 'mock';
+  stageOrder: string[];
+  sdrs: SdrSummary[];
+}
+
+// Descobre dinamicamente os SDRs (usuários preenchidos em crm.lead.sdr_id)
+async function getSdrUsers(): Promise<Array<[number, string]>> {
+  const groups = await odooCall('crm.lead', 'read_group', [
+    [['sdr_id', '!=', false]],
+  ], {
+    fields: ['sdr_id'],
+    groupby: ['sdr_id'],
+  });
+  return (groups as Array<{ sdr_id: [number, string] }>)
+    .filter((g) => g.sdr_id)
+    .map((g) => g.sdr_id);
+}
+
+export async function getPreVendasReport(): Promise<PreVendasReport> {
+  try {
+    const sdrs = await getSdrUsers();
+    const wonStages = new Set(['Pagamento confirmado', 'Pedido Confirmado']);
+
+    const summaries: SdrSummary[] = [];
+
+    for (const [sdrId, sdrName] of sdrs) {
+      // Funil: agrupa por stage para este SDR (read_group = agregação, read-only)
+      const byStage = (await odooCall('crm.lead', 'read_group', [
+        [['sdr_id', '=', sdrId]],
+      ], {
+        fields: ['stage_id'],
+        groupby: ['stage_id'],
+        lazy: false,
+      })) as Array<{ stage_id: [number, string] | false; __count: number }>;
+
+      const counts = new Map<string, number>();
+      let total = 0;
+      let won = 0;
+      for (const row of byStage) {
+        const stageName = row.stage_id ? row.stage_id[1] : 'Sem etapa';
+        counts.set(stageName, (counts.get(stageName) || 0) + row.__count);
+        total += row.__count;
+        if (wonStages.has(stageName)) won += row.__count;
+      }
+
+      const funnel: SdrFunnelStage[] = PRE_VENDAS_STAGE_ORDER
+        .filter((s) => counts.has(s))
+        .map((s) => ({ stage: s, count: counts.get(s) || 0 }));
+
+      const meetingsScheduled = (await odooCall('crm.lead', 'search_count', [
+        [['sdr_id', '=', sdrId], ['sdr_meeting_start', '!=', false]],
+      ])) as unknown as number;
+
+      const meetingsAttended = (await odooCall('crm.lead', 'search_count', [
+        [['sdr_id', '=', sdrId], ['sdr_meeting_attended', '=', true]],
+      ])) as unknown as number;
+
+      summaries.push({
+        sdrId,
+        sdrName,
+        totalLeads: total,
+        funnel,
+        meetingsScheduled,
+        meetingsAttended,
+        won,
+      });
+    }
+
+    summaries.sort((a, b) => b.totalLeads - a.totalLeads);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      source: 'odoo',
+      stageOrder: PRE_VENDAS_STAGE_ORDER,
+      sdrs: summaries,
+    };
+  } catch (err) {
+    console.error('getPreVendasReport failed', err);
+    return getMockPreVendas();
+  }
+}
+
+function getMockPreVendas(): PreVendasReport {
+  return {
+    generatedAt: new Date().toISOString(),
+    source: 'mock',
+    stageOrder: PRE_VENDAS_STAGE_ORDER,
+    sdrs: [
+      {
+        sdrId: 104,
+        sdrName: 'Douglas da Costa Junior',
+        totalLeads: 1103,
+        meetingsScheduled: 39,
+        meetingsAttended: 25,
+        won: 6,
+        funnel: [
+          { stage: 'Novo', count: 655 },
+          { stage: 'Sem contato', count: 314 },
+          { stage: 'Contato', count: 53 },
+          { stage: 'Agendado', count: 16 },
+          { stage: 'NoShow', count: 4 },
+          { stage: 'Qualified', count: 17 },
+          { stage: 'Cotação Enviada', count: 6 },
+          { stage: 'Proposta Visualizada', count: 3 },
+          { stage: 'Pedido Confirmado', count: 6 },
+        ],
+      },
+      {
+        sdrId: 103,
+        sdrName: 'Luanna Santos de Almeida',
+        totalLeads: 885,
+        meetingsScheduled: 33,
+        meetingsAttended: 15,
+        won: 19,
+        funnel: [
+          { stage: 'Novo', count: 79 },
+          { stage: 'Sem contato', count: 726 },
+          { stage: 'Contato', count: 16 },
+          { stage: 'Agendado', count: 7 },
+          { stage: 'Qualified', count: 13 },
+          { stage: 'Cotação Enviada', count: 9 },
+          { stage: 'Proposta Visualizada', count: 16 },
+          { stage: 'Pedido Confirmado', count: 19 },
+        ],
+      },
+    ],
+  };
+}
+
 // ─── MOCK DATA (fallback quando Odoo não responde) ──────────────────────────
 
 function getMockPipeline() {
