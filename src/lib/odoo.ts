@@ -4,7 +4,7 @@ import xmlrpc from 'xmlrpc';
 const ODOO_URL = process.env.ODOO_URL || 'https://odoo.layers.digital';
 const ODOO_DB = process.env.ODOO_DB || 'layers-digital-odoo-erp-main-16134201';
 const ODOO_USER = process.env.ODOO_USER || 'raissa.rios@layers.education';
-const ODOO_API_KEY = process.env.ODOO_API_KEY || '';
+const ODOO_API_KEY = process.env.ODOO_API_KEY || '751e97cc9d704cb2b4d6697cd78d6425ece08045';
 
 let uidPromise: Promise<number | null> | null = null;
 
