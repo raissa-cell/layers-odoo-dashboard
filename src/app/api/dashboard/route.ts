@@ -75,7 +75,7 @@ export async function GET() {
         atingimento,
         dealsWon: salesData.length,
         dealsEmNegociacao: pipelineData.length,
-        ticketMedio: pipelineData.length > 0 ? totalPipeline / pipelineData.length : 0,
+        ticketMedio: salesData.length > 0 ? totalFaturado / salesData.length : 0,
       },
       funil,
       channels,
@@ -83,8 +83,12 @@ export async function GET() {
       team,
       updatedAt: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch Odoo metrics' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Falha na conexão com Odoo', 
+      details: error.message || 'Erro desconhecido',
+      hint: 'Verifique se ODOO_API_KEY e ODOO_DB estão corretos na Vercel.'
+    }, { status: 500 });
   }
 }
