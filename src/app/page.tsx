@@ -48,7 +48,20 @@ export default function Dashboard() {
   useEffect(() => { load(); }, []);
 
   if (loading) return <div className="loading"><div className="spinner" /><span className="brand-font">Sincronizando Inteligência...</span></div>;
-  if (error) return <div className="loading"><span>⚠️ {error}</span><button onClick={load} className="tab-btn" style={{marginTop:16}}>Tentar novamente</button></div>;
+
+  if (error) return (
+    <div className="loading">
+      <span style={{ color: '#EF4444', fontWeight: 800 }}>⚠️ Falha na conexão com Odoo</span>
+      <p style={{ fontSize: '0.8rem', color: '#64748B', marginTop: 8, maxWidth: 400, textAlign: 'center' }}>
+        {error}. Isso geralmente ocorre por IP bloqueado ou credenciais expiradas.
+      </p>
+      <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+        <button onClick={load} className="tab-btn" style={{ border: '1px solid #00a69c', color: '#00a69c' }}>Tentar novamente</button>
+        <a href="/api/test-odoo" target="_blank" className="tab-btn" style={{ textDecoration: 'none', background: '#f1f5f9', color: '#475569' }}>Ver Diagnóstico</a>
+      </div>
+    </div>
+  );
+
   if (!data) return null;
 
   const { kpis, funil, channels, pipeline, team, prevendas } = data;
